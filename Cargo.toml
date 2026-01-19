@@ -23,6 +23,7 @@ features = [
     "proxy",
     "rbac",
     "schema-sync",
+    "tracing-spans",
     "runtime-tokio-native-tls",
     "postgres-array",
     "postgres-vector",
@@ -173,6 +174,7 @@ sqlx-sqlite = [
 sync = []
 tests-cfg = ["serde/derive"]
 tests-features = ["default", "rbac", "schema-sync", "with-bigdecimal"]
+tracing-spans = []
 with-bigdecimal = [
     "bigdecimal",
     "sea-query/with-bigdecimal",
