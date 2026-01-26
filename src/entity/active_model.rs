@@ -757,6 +757,7 @@ pub trait ActiveModelTrait: Clone + Debug {
         Self::Entity::find_related().belongs_to_active_model(self)
     }
 
+    /// Like find_related, but infer type from `AM`
     #[doc(hidden)]
     fn find_related_of<AM>(&self, _: &[AM]) -> crate::query::Select<AM::Entity>
     where
@@ -790,6 +791,7 @@ pub trait ActiveModelTrait: Clone + Debug {
         establish_links::<_, J, _, C>(self, related_models, left, right, delete_leftover, db).await
     }
 
+    /// Establish links for self-referencing many-to-many relation
     #[doc(hidden)]
     async fn establish_links_self<J, RM, C>(
         &self,
@@ -812,6 +814,7 @@ pub trait ActiveModelTrait: Clone + Debug {
         establish_links::<_, J, _, C>(self, related_models, left, right, delete_leftover, db).await
     }
 
+    /// Establish links for self-referencing many-to-many relation, but left-right reversed
     #[doc(hidden)]
     async fn establish_links_self_rev<J, RM, C>(
         &self,
@@ -834,6 +837,7 @@ pub trait ActiveModelTrait: Clone + Debug {
         establish_links::<_, J, _, C>(self, related_models, left, right, delete_leftover, db).await
     }
 
+    /// Inverse of establish link, break links between two many-to-many models
     #[doc(hidden)]
     async fn delete_links<J, C>(&self, _: J, db: &C) -> Result<DeleteResult, DbErr>
     where
@@ -857,6 +861,7 @@ pub trait ActiveModelTrait: Clone + Debug {
             .await
     }
 
+    /// Like `delete_links` but for self-referencing relations
     #[doc(hidden)]
     async fn delete_links_self<J, C>(&self, _: J, db: &C) -> Result<DeleteResult, DbErr>
     where
@@ -1141,12 +1146,12 @@ mod tests {
 
         #[derive(DeriveIntoActiveModel)]
         #[sea_orm(active_model = "fruit::ActiveModel")]
-        struct FruitName {
+        struct RequiredFruitName {
             name: String,
         }
 
         assert_eq!(
-            FruitName {
+            RequiredFruitName {
                 name: "Apple Pie".to_owned(),
             }
             .into_active_model(),
@@ -1158,13 +1163,79 @@ mod tests {
         );
 
         #[derive(DeriveIntoActiveModel)]
+        #[sea_orm(active_model = "fruit::ActiveModel")]
+        struct OptionalFruitName {
+            name: Option<String>,
+        }
+
+        assert_eq!(
+            OptionalFruitName {
+                name: Some("Apple Pie".to_owned()),
+            }
+            .into_active_model(),
+            fruit::ActiveModel {
+                id: NotSet,
+                name: Set("Apple Pie".to_owned()),
+                cake_id: NotSet,
+            }
+        );
+
+        assert_eq!(
+            OptionalFruitName { name: None }.into_active_model(),
+            fruit::ActiveModel {
+                id: NotSet,
+                name: NotSet,
+                cake_id: NotSet,
+            }
+        );
+
+        #[derive(DeriveIntoActiveModel)]
         #[sea_orm(active_model = "<fruit::Entity as EntityTrait>::ActiveModel")]
-        struct FruitCake {
+        struct RequiredAndNotNullFruitCake {
+            cake_id: i32,
+        }
+
+        assert_eq!(
+            RequiredAndNotNullFruitCake { cake_id: 1 }.into_active_model(),
+            fruit::ActiveModel {
+                id: NotSet,
+                name: NotSet,
+                cake_id: Set(Some(1)),
+            }
+        );
+
+        #[derive(DeriveIntoActiveModel)]
+        #[sea_orm(active_model = "<fruit::Entity as EntityTrait>::ActiveModel")]
+        struct OptionalAndNotNullFruitCake {
+            cake_id: Option<i32>,
+        }
+
+        assert_eq!(
+            OptionalAndNotNullFruitCake { cake_id: Some(1) }.into_active_model(),
+            fruit::ActiveModel {
+                id: NotSet,
+                name: NotSet,
+                cake_id: Set(Some(1)),
+            }
+        );
+
+        assert_eq!(
+            OptionalAndNotNullFruitCake { cake_id: None }.into_active_model(),
+            fruit::ActiveModel {
+                id: NotSet,
+                name: NotSet,
+                cake_id: NotSet,
+            }
+        );
+
+        #[derive(DeriveIntoActiveModel)]
+        #[sea_orm(active_model = "<fruit::Entity as EntityTrait>::ActiveModel")]
+        struct OptionalAndNullableFruitCake {
             cake_id: Option<Option<i32>>,
         }
 
         assert_eq!(
-            FruitCake {
+            OptionalAndNullableFruitCake {
                 cake_id: Some(Some(1)),
             }
             .into_active_model(),
@@ -1176,7 +1247,7 @@ mod tests {
         );
 
         assert_eq!(
-            FruitCake {
+            OptionalAndNullableFruitCake {
                 cake_id: Some(None),
             }
             .into_active_model(),
@@ -1188,7 +1259,7 @@ mod tests {
         );
 
         assert_eq!(
-            FruitCake { cake_id: None }.into_active_model(),
+            OptionalAndNullableFruitCake { cake_id: None }.into_active_model(),
             fruit::ActiveModel {
                 id: NotSet,
                 name: NotSet,
