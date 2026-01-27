@@ -118,6 +118,9 @@ fn try_get(res: &QueryResult, pre: &str, col: &str, ty: &ArrayType) -> Result<Va
         ArrayType::TimeDateTime => Value::TimeDateTime(res.try_get(pre, col)?),
 
         #[cfg(feature = "with-time")]
+        ArrayType::TimeDateTimeUtc => Value::TimeDateTimeUtc(res.try_get(pre, col)?),
+
+        #[cfg(feature = "with-time")]
         ArrayType::TimeDateTimeWithTimeZone => {
             Value::TimeDateTimeWithTimeZone(res.try_get(pre, col)?)
         }

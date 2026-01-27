@@ -87,6 +87,12 @@ pub use time::PrimitiveDateTime as TimeDateTime;
 pub use time::OffsetDateTime as TimeDateTimeWithTimeZone;
 
 #[cfg(feature = "with-time")]
+pub use time::UtcDateTime as TimeDateTimeUtc;
+
+#[cfg(feature = "with-time")]
+pub use time::UtcOffset as TimeUtc;
+
+#[cfg(feature = "with-time")]
 pub use crate::value::{TimeUnixTimestamp, TimeUnixTimestampMillis};
 
 #[cfg(feature = "with-rust_decimal")]
