@@ -649,6 +649,55 @@ try_getable_all!(time::PrimitiveDateTime);
 #[cfg(feature = "with-time")]
 try_getable_all!(time::OffsetDateTime);
 
+#[cfg(feature = "with-time")]
+impl TryGetable for time::UtcDateTime {
+    #[allow(unused_variables)]
+    fn try_get_by<I: ColIdx>(res: &QueryResult, idx: I) -> Result<Self, TryGetError> {
+        match &res.row {
+            #[cfg(feature = "sqlx-mysql")]
+            QueryResultRow::SqlxMySql(row) => row
+                .try_get::<Option<time::OffsetDateTime>, _>(idx.as_sqlx_mysql_index())
+                .map_err(|e| sqlx_error_to_query_err(e).into())
+                .and_then(|opt| {
+                    opt.map(time::UtcDateTime::from)
+                        .ok_or_else(|| err_null_idx_col(idx))
+                }),
+            #[cfg(feature = "sqlx-postgres")]
+            QueryResultRow::SqlxPostgres(row) => row
+                .try_get::<Option<time::OffsetDateTime>, _>(idx.as_sqlx_postgres_index())
+                .map_err(|e| sqlx_error_to_query_err(e).into())
+                .and_then(|opt| {
+                    opt.map(time::UtcDateTime::from)
+                        .ok_or_else(|| err_null_idx_col(idx))
+                }),
+            #[cfg(feature = "sqlx-sqlite")]
+            QueryResultRow::SqlxSqlite(row) => row
+                .try_get::<Option<time::OffsetDateTime>, _>(idx.as_sqlx_sqlite_index())
+                .map_err(|e| sqlx_error_to_query_err(e).into())
+                .and_then(|opt| {
+                    opt.map(time::UtcDateTime::from)
+                        .ok_or_else(|| err_null_idx_col(idx))
+                }),
+            #[cfg(feature = "rusqlite")]
+            QueryResultRow::Rusqlite(row) => row
+                .try_get::<Option<time::UtcDateTime>, _>(idx)
+                .and_then(|opt| opt.ok_or_else(|| err_null_idx_col(idx))),
+            #[cfg(feature = "mock")]
+            QueryResultRow::Mock(row) => row.try_get(idx).map_err(|e| {
+                debug_print!("{:#?}", e.to_string());
+                err_null_idx_col(idx)
+            }),
+            #[cfg(feature = "proxy")]
+            QueryResultRow::Proxy(row) => row.try_get(idx).map_err(|e| {
+                debug_print!("{:#?}", e.to_string());
+                err_null_idx_col(idx)
+            }),
+            #[allow(unreachable_patterns)]
+            _ => unreachable!(),
+        }
+    }
+}
+
 #[cfg(feature = "with-rust_decimal")]
 use rust_decimal::Decimal;
 
@@ -1096,6 +1145,55 @@ mod postgres_array {
 
     #[cfg(feature = "with-ipnetwork")]
     try_getable_postgres_array!(ipnetwork::IpNetwork);
+
+    #[cfg(feature = "with-time")]
+    #[allow(unused_variables)]
+    impl TryGetable for Vec<time::UtcDateTime> {
+        fn try_get_by<I: ColIdx>(res: &QueryResult, idx: I) -> Result<Self, TryGetError> {
+            match &res.row {
+                #[cfg(feature = "sqlx-mysql")]
+                QueryResultRow::SqlxMySql(_) => Err(type_err(format!(
+                    "{} unsupported by sqlx-mysql",
+                    stringify!(time::UtcDateTime)
+                ))
+                .into()),
+                #[cfg(feature = "sqlx-postgres")]
+                QueryResultRow::SqlxPostgres(row) => row
+                    .try_get::<Option<Vec<time::OffsetDateTime>>, _>(idx.as_sqlx_postgres_index())
+                    .map_err(|e| sqlx_error_to_query_err(e).into())
+                    .and_then(|opt| {
+                        opt.map(|v| v.into_iter().map(time::UtcDateTime::from).collect())
+                            .ok_or_else(|| err_null_idx_col(idx))
+                    }),
+                #[cfg(feature = "sqlx-sqlite")]
+                QueryResultRow::SqlxSqlite(_) => Err(type_err(format!(
+                    "{} unsupported by sqlx-sqlite",
+                    stringify!(time::UtcDateTime)
+                ))
+                .into()),
+                #[cfg(feature = "rusqlite")]
+                QueryResultRow::Rusqlite(_) => Err(type_err(format!(
+                    "{} unsupported by rusqlite",
+                    stringify!(time::UtcDateTime)
+                ))
+                .into()),
+                #[cfg(feature = "mock")]
+                #[allow(unused_variables)]
+                QueryResultRow::Mock(row) => row.try_get(idx).map_err(|e| {
+                    debug_print!("{:#?}", e.to_string());
+                    err_null_idx_col(idx)
+                }),
+                #[cfg(feature = "proxy")]
+                #[allow(unused_variables)]
+                QueryResultRow::Proxy(row) => row.try_get(idx).map_err(|e| {
+                    debug_print!("{:#?}", e.to_string());
+                    err_null_idx_col(idx)
+                }),
+                #[allow(unreachable_patterns)]
+                _ => unreachable!(),
+            }
+        }
+    }
 
     #[allow(unused_macros)]
     macro_rules! try_getable_postgres_array_uuid {
@@ -1638,6 +1736,9 @@ try_from_u64_err!(time::PrimitiveDateTime);
 
 #[cfg(feature = "with-time")]
 try_from_u64_err!(time::OffsetDateTime);
+
+#[cfg(feature = "with-time")]
+try_from_u64_err!(time::UtcDateTime);
 
 #[cfg(feature = "with-rust_decimal")]
 try_from_u64_err!(rust_decimal::Decimal);

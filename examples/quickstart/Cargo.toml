@@ -22,3 +22,8 @@ features = [
     "schema-sync",
 ]
 path = "../../"
+
+[patch.crates-io]
+# sea-query = { path = "../sea-query" }
+sea-query = { git = "https://github.com/SeaQL/sea-query", branch = "utc-time" }
+sea-query-sqlx = { git = "https://github.com/SeaQL/sea-query", branch = "utc-time" }
